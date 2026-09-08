@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAB INFORMATICA — pannello tecnico</title>
+<style>
+  :root {
+    --ink: #101114;
+    --ink-soft: #66686f;
+    --ink-faint: #9a9ca5;
+    --paper: #fafafb;
+    --surface: #f2f3f5;
+    --surface-raised: #ffffff;
+    --line: #eaeaec;
+    --line-strong: #dcdde1;
+    --accent: #155eff;
+    --accent-soft: #dce8ff;
+    --ok: #0f9d68;
+    --ok-soft: #dcf5e8;
+    --warn: #b5750a;
+    --warn-soft: #fbecd2;
+    --crit: #d13a34;
+    --crit-soft: #fbe0de;
+    --off: #8a8d97;
+    --off-soft: #eceef1;
+    --shadow-sm: 0 1px 2px rgba(16,17,20,0.05), 0 1px 1px rgba(16,17,20,0.03);
+    --shadow-md: 0 16px 32px rgba(16,17,20,0.10), 0 3px 8px rgba(16,17,20,0.05);
+    --radius: 14px;
+    --radius-lg: 20px;
+    --radius-pill: 999px;
+    --font-display: Bahnschrift, "Arial Narrow", "Segoe UI Semibold", sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "SFMono-Regular", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #f2f3f5; --ink-soft: #a9abb3; --ink-faint: #75777f;
+      --paper: #0a0b0d; --surface: #15161a; --surface-raised: #1c1d22;
+      --line: #2a2b30; --line-strong: #383a41;
+      --accent: #4c8dff; --accent-soft: #16233f;
+      --ok: #34d399; --ok-soft: #10301f;
+      --warn: #f2a83d; --warn-soft: #3a2a0d;
+      --crit: #f2645c; --crit-soft: #3a1513;
+      --off: #6c6f78; --off-soft: #1c1d22;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 20px 40px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #f2f3f5; --ink-soft: #a9abb3; --ink-faint: #75777f;
+    --paper: #0a0b0d; --surface: #15161a; --surface-raised: #1c1d22;
+    --line: #2a2b30; --line-strong: #383a41;
+    --accent: #4c8dff; --accent-soft: #16233f;
+    --ok: #34d399; --ok-soft: #10301f;
+    --warn: #f2a83d; --warn-soft: #3a2a0d;
+    --crit: #f2645c; --crit-soft: #3a1513;
+    --off: #6c6f78; --off-soft: #1c1d22;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 20px 40px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
+
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px; flex: none; background: var(--surface-raised); border-right: 1px solid var(--line);
+    padding: 22px 16px; display: flex; flex-direction: column; gap: 26px;
+  }
+  @media (max-width: 900px) { .sidebar { display: none; } }
+  .sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+  .sidebar .brand .mark { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; flex: none; }
+  .sidebar .brand .word { font-family: var(--font-display); font-size: 17px; }
+  .sidebar .brand .sub { font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar nav .item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; font-size: 14px; color: var(--ink-soft); font-weight: 500; }
+  .sidebar nav .item.active { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
+  .sidebar nav .item svg { flex: none; opacity: 0.85; }
+  .sidebar .foot { margin-top: auto; font-size: 11.5px; color: var(--ink-faint); padding: 0 6px; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; border-bottom: 1px solid var(--line); background: var(--surface-raised); position: sticky; top: 0; z-index: 20; gap: 16px; }
+  .topbar h1 { font-size: 17px; }
+  .topbar .search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 8px 14px; width: 320px; max-width: 40vw; }
+  .topbar .search input { border: 0; background: transparent; outline: none; font-size: 13.5px; color: var(--ink); width: 100%; }
+  .topbar .search svg { opacity: 0.5; flex: none; }
+  .topbar .right { display: flex; align-items: center; gap: 16px; }
+  .live-pill { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--ok); background: var(--ok-soft); padding: 6px 12px; border-radius: var(--radius-pill); }
+  .live-pill.stale { color: var(--off); background: var(--off-soft); }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .tech-chip { display: flex; align-items: center; gap: 9px; }
+  .tech-chip .av { width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: var(--font-display); }
+  .tech-chip .name { font-size: 13px; font-weight: 600; }
+
+  .content { padding: 26px; display: flex; flex-direction: column; gap: 22px; max-width: 1400px; width: 100%; margin: 0 auto; }
+  .info-flag { font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-soft); padding: 8px 14px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 8px; width: fit-content; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  @media (max-width: 980px) { .stat-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 620px) { .stat-row { grid-template-columns: 1fr 1fr; } }
+  .stat-tile { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+  .stat-tile .lab { font-size: 12px; color: var(--ink-faint); font-weight: 500; }
+  .stat-tile .val { font-family: var(--font-mono); font-size: 27px; font-weight: 700; margin-top: 6px; }
+  .stat-tile .val.ok { color: var(--ok); }
+  .stat-tile .val.warn { color: var(--warn); }
+  .stat-tile .val.crit { color: var(--crit); }
+
+  .board-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+  @media (max-width: 1080px) { .board-grid { grid-template-columns: 1fr; } }
+
+  .panel-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .panel-title h2 { font-size: 16px; }
+  .panel-title .count { font-size: 12.5px; color: var(--ink-faint); }
+
+  .client-group { margin-bottom: 18px; }
+  .client-group:last-child { margin-bottom: 0; }
+  .client-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 2px 12px; }
+  .client-head .who { display: flex; align-items: center; gap: 11px; }
+  .client-head .av { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-raised); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 15px; flex: none; }
+  .client-head .name { font-size: 14.5px; font-weight: 700; }
+  .client-head .meta { font-size: 12px; color: var(--ink-faint); margin-top: 1px; }
+  .client-head .right { display: flex; align-items: center; gap: 8px; }
+
+  .device-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .device-grid { grid-template-columns: 1fr; } }
+  .device-card { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; display: flex; flex-direction: column; gap: 12px; }
+  .device-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .device-card.is-offline { opacity: 0.65; }
+  .dc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .dc-who { display: flex; gap: 10px; align-items: center; }
+  .dc-who .av { width: 32px; height: 32px; border-radius: 9px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none; }
+  .dc-who .name { font-size: 13.5px; font-weight: 700; }
+  .status-pill { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-pill); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+  .status-pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .status-pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .status-pill.crit { background: var(--crit-soft); color: var(--crit); }
+  .status-pill.off { background: var(--off-soft); color: var(--off); }
+
+  .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .metric { background: var(--surface); border-radius: 12px; padding: 10px 12px; }
+  .metric .m-lab { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .metric .m-val { font-family: var(--font-mono); font-size: 17px; font-weight: 700; margin-top: 4px; }
+  .metric .m-val.ok { color: var(--ok); }
+  .metric .m-val.warn { color: var(--warn); }
+  .metric .m-val.crit { color: var(--crit); }
+  .metric .m-val.off { color: var(--ink-faint); }
+  .bar-track { height: 4px; border-radius: 3px; background: var(--line); margin-top: 7px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .bar-fill.ok { background: var(--ok); }
+  .bar-fill.warn { background: var(--warn); }
+  .bar-fill.crit { background: var(--crit); }
+
+  .issue-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .issue-chip { font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 5px; }
+  .issue-chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .issue-chip.crit { background: var(--crit-soft); color: var(--crit); }
+  .issue-chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .dc-foot { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--ink-faint); border-top: 1px solid var(--line); padding-top: 12px; }
+  .dc-foot .seen { display: flex; align-items: center; gap: 6px; }
+  .seen-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .seen-dot.on { background: var(--ok); }
+  .seen-dot.off { background: var(--off); }
+
+  .watch-panel { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); }
+  .watch-list { display: flex; flex-direction: column; gap: 10px; }
+  .watch-item { display: flex; gap: 10px; padding: 12px; border-radius: 12px; background: var(--surface); cursor: pointer; }
+  .watch-item:hover { background: var(--line); }
+  .watch-stripe { width: 3px; border-radius: 2px; flex: none; }
+  .watch-stripe.crit { background: var(--crit); }
+  .watch-stripe.warn { background: var(--warn); }
+  .watch-body .who { font-size: 12.5px; font-weight: 700; }
+  .watch-body .issue { font-size: 12px; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
+  .watch-empty { font-size: 13px; color: var(--ink-faint); text-align: center; padding: 20px 0; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(10,11,13,0.55); backdrop-filter: blur(2px); display: none; align-items: stretch; justify-content: flex-end; z-index: 100; }
+  .overlay.open { display: flex; }
+  .detail-panel { width: 100%; max-width: 480px; background: var(--surface-raised); height: 100%; overflow-y: auto; padding: 24px; box-shadow: var(--shadow-md); }
+  .detail-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .detail-close { border: none; background: var(--surface); width: 30px; height: 30px; border-radius: 50%; color: var(--ink-soft); font-size: 14px; }
+  .detail-close:hover { background: var(--line); color: var(--ink); }
+  .detail-who { display: flex; gap: 12px; align-items: center; }
+  .detail-who .av { width: 46px; height: 46px; border-radius: 13px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .detail-who .name { font-size: 16.5px; font-weight: 700; }
+  .detail-who .device { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
+  .detail-section { margin-top: 22px; }
+  .detail-section h3 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 12px; }
+  .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .comp-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--surface); }
+  .comp-card .c-lab { font-size: 11.5px; color: var(--ink-faint); font-weight: 600; }
+  .comp-card .c-val { font-family: var(--font-mono); font-size: 21px; font-weight: 700; margin-top: 5px; }
+  .comp-card svg { margin-top: 8px; display: block; width: 100%; height: 34px; }
+  .comp-card .c-note { font-size: 10.5px; color: var(--ink-faint); margin-top: 6px; }
+  .disk-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .disk-row { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: var(--surface); border-radius: 8px; }
+  .disk-row .h { font-weight: 600; }
+  .disk-row .h.ok { color: var(--ok); } .disk-row .h.warn { color: var(--warn); } .disk-row .h.crit { color: var(--crit); }
+  .rec-list { display: flex; flex-direction: column; gap: 10px; }
+  .rec-item { border-radius: var(--radius); padding: 13px 14px; font-size: 13px; line-height: 1.5; border: 1px solid var(--line); }
+  .rec-item.crit { background: var(--crit-soft); color: var(--crit); border-color: transparent; }
+  .rec-item.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+  .rec-item strong { display: block; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+  .detail-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .dbtn { flex: 1; text-align: center; padding: 11px; border-radius: var(--radius-pill); font-size: 13.5px; font-weight: 600; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); }
+  .dbtn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .detail-note { font-size: 11.5px; color: var(--ink-faint); margin-top: 14px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="mark">LI</span>
+      <div><div class="word">LAB INFORMATICA</div><div class="sub">Pannello tecnico</div></div>
+    </div>
+    <nav>
+      <div class="item active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Panoramica</div>
+      <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Dispositivi</div>
+      <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v10M12 17h.01"/><path d="M10.3 3.9 2.6 18a1 1 0 0 0 .9 1.5h17a1 1 0 0 0 .9-1.5L13.7 3.9a1 1 0 0 0-1.7 0Z"/></svg>Allarmi</div>
+      <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>Clienti</div>
+    </nav>
+    <div class="foot">© 2026 Lab Informatica<br>agente reale — v0.1</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>Panoramica dispositivi</h1>
+      <label class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="device-search" type="text" placeholder="Cerca cliente o dispositivo…" autocomplete="off">
+      </label>
+      <div class="right">
+        <span class="live-pill" id="live-pill"><span class="live-dot"></span><span id="live-label">Connessione…</span></span>
+        <div class="tech-chip"><span class="av">MT</span><span class="name">Marco T.</span></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <span class="info-flag">● Dati reali inviati dall'agente installato sui PC — nessuna simulazione. Aggiornamento ogni 5s.</span>
+
+      <section class="stat-row">
+        <div class="stat-tile"><div class="lab">Clienti collegati</div><div class="val" id="stat-clients">—</div></div>
+        <div class="stat-tile"><div class="lab">Dispositivi online</div><div class="val ok" id="stat-online">—</div></div>
+        <div class="stat-tile"><div class="lab">Allarmi attivi</div><div class="val warn" id="stat-alerts">—</div></div>
+        <div class="stat-tile"><div class="lab">Interventi preventivi</div><div class="val crit" id="stat-preventive">—</div></div>
+        <div class="stat-tile"><div class="lab">Salute media flotta</div><div class="val" id="stat-health">—</div></div>
+      </section>
+
+      <div class="board-grid">
+        <section>
+          <div class="panel-title"><h2>Dispositivi collegati</h2><span class="count" id="device-count">—</span></div>
+          <div class="device-grid" id="device-grid"></div>
+        </section>
+        <aside class="watch-panel">
+          <div class="panel-title"><h2>Da tenere d'occhio</h2></div>
+          <div class="watch-list" id="watch-list"></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"><div class="detail-panel" id="detail-panel"></div></div>
+
+<script>
+(function () {
+  var STATUS_LABEL = { ok: 'OK', warn: 'Attenzione', crit: 'Critico', off: 'Offline' };
+  var lastFetchOk = false;
+  var lastDevices = [];
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function sevOf(value, warnAt, critAt, higherIsWorse) {
+    if (value == null) return 'off';
+    if (higherIsWorse) { if (value >= critAt) return 'crit'; if (value >= warnAt) return 'warn'; return 'ok'; }
+    if (value <= critAt) return 'crit'; if (value <= warnAt) return 'warn'; return 'ok';
+  }
+
+  function diskSev(d) {
+    if (!d.online) return 'off';
+    var h = d.latest && d.latest.diskHealth;
+    return h === 'crit' ? 'crit' : h === 'warn' ? 'warn' : 'ok';
+  }
+  function cpuUsesTemp(d) { return d.latest && d.latest.cpuTempC != null; }
+  function cpuSev(d) {
+    if (!d.online) return 'off';
+    var l = d.latest || {};
+    if (l.cpuTempC != null) return sevOf(l.cpuTempC, 70, 82, true);
+    return sevOf(l.cpuUsagePct, 90, 98, true);
+  }
+  function ramSev(d) { return d.online ? sevOf(d.latest && d.latest.ramUsedPct, 80, 92, true) : 'off'; }
+  function overallSev(d) {
+    if (!d.online) return 'off';
+    var sevs = [diskSev(d), cpuSev(d), ramSev(d), hwSev(d)];
+    if (sevs.indexOf('crit') !== -1) return 'crit';
+    if (sevs.indexOf('warn') !== -1) return 'warn';
+    return 'ok';
+  }
+
+  function issuesFor(d) {
+    var out = [];
+    if (!d.online) return out;
+    var l = d.latest || {};
+    var ds = diskSev(d);
+    if (ds !== 'ok') out.push({ sev: ds, text: 'Disco: stato SMART ' + (ds === 'crit' ? 'critico' : 'in avviso') });
+    var cs = cpuSev(d);
+    if (cs !== 'ok') out.push({ sev: cs, text: cpuUsesTemp(d) ? 'CPU: temperatura elevata (' + l.cpuTempC + '°C)' : 'CPU: uso costantemente alto (' + l.cpuUsagePct + '%)' });
+    var rs = ramSev(d);
+    if (rs !== 'ok') out.push({ sev: rs, text: 'RAM: uso elevato (' + l.ramUsedPct + '%)' });
+    if (l.batteryPct != null && l.batteryPct < 40) out.push({ sev: l.batteryPct < 20 ? 'crit' : 'warn', text: 'Batteria: carica residua ' + l.batteryPct + '%' });
+    var hwErr = l.hardwareErrorLevelCount30d || 0;
+    if (hwErr > 0) out.push({ sev: hwErr >= 3 ? 'crit' : 'warn', text: 'Errori hardware nel log di sistema: ' + hwErr + ' (ultimi 30gg)' });
+    return out;
+  }
+  function hwSev(d) {
+    if (!d.online) return 'off';
+    var n = (d.latest && d.latest.hardwareErrorLevelCount30d) || 0;
+    return n >= 3 ? 'crit' : n > 0 ? 'warn' : 'ok';
+  }
+
+  function recsFor(d) {
+    var out = [];
+    var l = d.latest || {};
+    var ds = diskSev(d);
+    if (ds !== 'ok') out.push({ sev: ds, title: 'Disco', text: (ds === 'crit' ? 'Lo stato SMART segnala un problema critico: rischio concreto di perdita dati. ' : 'Lo stato SMART è in avviso. ') + 'Consigliati controllo approfondito e backup precauzionale al più presto.' });
+    var cs = cpuSev(d);
+    if (cs !== 'ok') out.push({ sev: cs, title: 'CPU', text: cpuUsesTemp(d) ? 'Temperatura sopra soglia: verificare ventole e pasta termica per evitare throttling o spegnimenti.' : 'Utilizzo CPU costantemente alto: verificare processi in background o valutare un upgrade.' });
+    var rs = ramSev(d);
+    if (rs !== 'ok') out.push({ sev: rs, title: 'RAM', text: 'Utilizzo memoria elevato: valutare chiusura processi superflui o upgrade dei moduli RAM.' });
+    var hs = hwSev(d);
+    if (hs !== 'ok') out.push({ sev: hs, title: 'Errori hardware', text: 'Windows ha registrato errori hardware nel log di sistema (WHEA) negli ultimi 30 giorni. Non indicano necessariamente un guasto della RAM — possono riguardare anche altri componenti — ma se il PC ha blocchi o riavvii improvvisi vale la pena approfondire con un test di memoria.' });
+    return out;
+  }
+
+  function sparkline(values, sev) {
+    var vals = (values || []).filter(function (v) { return v != null; });
+    if (vals.length < 2) return '<div class="c-note">Dati insufficienti per il grafico</div>';
+    var w = 100, h = 34, pad = 3;
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var range = (max - min) || 1;
+    var pts = vals.map(function (v, i) {
+      var x = (i / (vals.length - 1)) * (w - pad * 2) + pad;
+      var y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    var color = sev === 'crit' ? 'var(--crit)' : sev === 'warn' ? 'var(--warn)' : 'var(--ok)';
+    var areaPts = pts.concat([(w - pad) + ',' + h, pad + ',' + h]).join(' ');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<polygon points="' + areaPts + '" fill="' + color + '" opacity="0.12"></polygon>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>';
+  }
+
+  var grid = document.getElementById('device-grid');
+  var watchList = document.getElementById('watch-list');
+
+  function renderDeviceCard(d) {
+    var sev = overallSev(d);
+    var l = d.latest || {};
+    var dsev = diskSev(d), csev = cpuSev(d), rsev = ramSev(d);
+    var chips = issuesFor(d).map(function (iss) { return '<span class="issue-chip ' + iss.sev + '">' + iss.text + '</span>'; }).join('');
+    var cpuLab = cpuUsesTemp(d) ? 'CPU' : 'CPU (uso)';
+    var cpuVal = d.online ? (cpuUsesTemp(d) ? l.cpuTempC + '°C' : l.cpuUsagePct + '%') : '—';
+    var cpuBarPct = d.online ? (cpuUsesTemp(d) ? clamp(l.cpuTempC, 0, 100) : l.cpuUsagePct) : 0;
+    return '' +
+      '<div class="device-card' + (d.online ? '' : ' is-offline') + '" data-id="' + d.id + '">' +
+        '<div class="dc-head"><div class="dc-who"><span class="av">🖥️</span><div class="name">' + d.deviceName + '</div></div><span class="status-pill ' + sev + '">' + STATUS_LABEL[sev] + '</span></div>' +
+        '<div class="metric-row">' +
+          '<div class="metric"><div class="m-lab">Disco</div><div class="m-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div><div class="bar-track"><div class="bar-fill ' + dsev + '" style="width:' + (d.online ? l.diskUsedPct : 0) + '%"></div></div></div>' +
+          '<div class="metric"><div class="m-lab">' + cpuLab + '</div><div class="m-val ' + csev + '">' + cpuVal + '</div><div class="bar-track"><div class="bar-fill ' + csev + '" style="width:' + cpuBarPct + '%"></div></div></div>' +
+          '<div class="metric"><div class="m-lab">RAM</div><div class="m-val ' + rsev + '">' + (d.online ? l.ramUsedPct + '%' : '—') + '</div><div class="bar-track"><div class="bar-fill ' + rsev + '" style="width:' + (d.online ? l.ramUsedPct : 0) + '%"></div></div></div>' +
+        '</div>' +
+        (chips ? '<div class="issue-chips">' + chips + '</div>' : '') +
+        '<div class="dc-foot"><span class="seen"><span class="seen-dot ' + (d.online ? 'on' : 'off') + '"></span>' + (d.online ? 'Connesso' : 'Ultimo contatto: ' + (d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString('it-IT') : 'mai')) + '</span><span>Dettagli →</span></div>' +
+      '</div>';
+  }
+
+  function groupByClient(devices) {
+    var map = {};
+    devices.forEach(function (d) {
+      (map[d.clientName] = map[d.clientName] || []).push(d);
+    });
+    return Object.keys(map).map(function (name) { return { name: name, devices: map[name] }; });
+  }
+
+  function clientOverallSev(group) {
+    var sevs = group.devices.map(overallSev);
+    if (sevs.indexOf('crit') !== -1) return 'crit';
+    if (sevs.indexOf('warn') !== -1) return 'warn';
+    if (sevs.every(function (s) { return s === 'off'; })) return 'off';
+    return 'ok';
+  }
+
+  function renderClientGroup(group, devicesToShow) {
+    var onlineCount = group.devices.filter(function (d) { return d.online; }).length;
+    return '' +
+      '<div class="client-group">' +
+        '<div class="client-head"><div class="who"><span class="av">🏢</span><div><div class="name">' + group.name + '</div><div class="meta">' + group.devices.length + ' PC · ' + onlineCount + ' online</div></div></div>' +
+        '<div class="right"><span class="status-pill ' + clientOverallSev(group) + '">' + STATUS_LABEL[clientOverallSev(group)] + '</span></div></div>' +
+        '<div class="device-grid">' + devicesToShow.map(renderDeviceCard).join('') + '</div>' +
+      '</div>';
+  }
+
+  function renderAll() {
+    var q = (document.getElementById('device-search').value || '').toLowerCase().trim();
+    var groups = groupByClient(lastDevices);
+    var visibleClients = 0, visibleDevices = 0;
+    var html = groups.map(function (g) {
+      var clientMatches = g.name.toLowerCase().indexOf(q) !== -1;
+      var toShow = g.devices.filter(function (d) { return !q || clientMatches || d.deviceName.toLowerCase().indexOf(q) !== -1; });
+      if (!toShow.length) return '';
+      visibleClients++; visibleDevices += toShow.length;
+      return renderClientGroup(g, toShow);
+    }).join('');
+
+    if (!lastDevices.length) {
+      grid.innerHTML = '<div class="watch-empty">Nessun dispositivo ancora collegato.<br>Avvia l\'agente su un PC per vederlo comparire qui.</div>';
+    } else {
+      grid.innerHTML = html || '<div class="watch-empty">Nessun cliente o dispositivo corrisponde alla ricerca.</div>';
+    }
+    document.getElementById('device-count').textContent = visibleDevices + ' dispositivi · ' + visibleClients + ' clienti';
+
+    var onlineCount = lastDevices.filter(function (d) { return d.online; }).length;
+    var alertCount = lastDevices.reduce(function (n, d) { return n + issuesFor(d).length; }, 0);
+    var preventiveCount = lastDevices.reduce(function (n, d) { return n + recsFor(d).length; }, 0);
+    var withHealth = lastDevices.filter(function (d) { return d.online && d.latest && d.latest.diskUsedPct != null; });
+    var avgHealth = withHealth.length ? Math.round(withHealth.reduce(function (s, d) { return s + (100 - d.latest.diskUsedPct); }, 0) / withHealth.length) : null;
+    document.getElementById('stat-clients').textContent = groups.length;
+    document.getElementById('stat-online').textContent = onlineCount + '/' + lastDevices.length;
+    document.getElementById('stat-alerts').textContent = alertCount;
+    document.getElementById('stat-preventive').textContent = preventiveCount;
+    var healthEl = document.getElementById('stat-health');
+    healthEl.textContent = avgHealth == null ? '—' : avgHealth + '%';
+    healthEl.className = 'val ' + (avgHealth == null ? '' : avgHealth >= 60 ? 'ok' : avgHealth >= 35 ? 'warn' : 'crit');
+
+    var watchItems = [];
+    lastDevices.forEach(function (d) {
+      issuesFor(d).forEach(function (iss) { watchItems.push({ sev: iss.sev, who: d.clientName + ' — ' + d.deviceName, text: iss.text, id: d.id }); });
+    });
+    watchItems.sort(function (a, b) { return (a.sev === 'crit' ? 0 : 1) - (b.sev === 'crit' ? 0 : 1); });
+    watchList.innerHTML = watchItems.length ? watchItems.map(function (w) {
+      return '<div class="watch-item" data-id="' + w.id + '"><span class="watch-stripe ' + w.sev + '"></span><div class="watch-body"><div class="who">' + w.who + '</div><div class="issue">' + w.text + '</div></div></div>';
+    }).join('') : '<div class="watch-empty">Nessun allarme al momento — tutto sotto controllo.</div>';
+
+    grid.querySelectorAll('.device-card').forEach(function (el) { el.addEventListener('click', function () { openDetail(el.dataset.id); }); });
+    watchList.querySelectorAll('.watch-item').forEach(function (el) { el.addEventListener('click', function () { openDetail(el.dataset.id); }); });
+  }
+
+  function openDetail(id) {
+    var d = lastDevices.filter(function (x) { return x.id === id; })[0];
+    if (!d) return;
+    var l = d.latest || {};
+    var dsev = diskSev(d), csev = cpuSev(d);
+    var recs = recsFor(d).map(function (r) { return '<div class="rec-item ' + r.sev + '"><strong>' + r.title + '</strong>' + r.text + '</div>'; }).join('') || '<div class="rec-item">Nessuna azione preventiva necessaria al momento.</div>';
+    var physicalRows = (l.physicalDisks || []).map(function (p) {
+      var h = p.health === 'Unhealthy' ? 'crit' : p.health === 'Warning' ? 'warn' : 'ok';
+      return '<div class="disk-row"><span>' + (p.name || '—') + ' (' + (p.mediaType || '?') + ')</span><span class="h ' + h + '">' + (p.health || 'n/d') + '</span></div>';
+    }).join('');
+
+    document.getElementById('detail-panel').innerHTML = '' +
+      '<div class="detail-head"><div class="detail-who"><span class="av">🖥️</span><div><div class="name">' + d.deviceName + '</div><div class="device">' + d.clientName + '</div></div></div><button class="detail-close" id="detail-close">✕</button></div>' +
+      '<span class="status-pill ' + overallSev(d) + '">' + STATUS_LABEL[overallSev(d)] + '</span>' +
+      '<div class="detail-section"><h3>Componenti</h3><div class="comp-grid">' +
+        '<div class="comp-card"><div class="c-lab">Disco (volume principale)</div><div class="c-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.diskUsed, dsev) + '</div>' +
+        '<div class="comp-card"><div class="c-lab">' + (cpuUsesTemp(d) ? 'Temperatura CPU' : 'Uso CPU') + '</div><div class="c-val ' + csev + '">' + (d.online ? (cpuUsesTemp(d) ? l.cpuTempC + '°C' : l.cpuUsagePct + '%') : '—') + '</div>' + sparkline(cpuUsesTemp(d) ? (d.history && d.history.cpuTemp) : (d.history && d.history.cpuUsage), csev) + (cpuUsesTemp(d) ? '' : '<div class="c-note">Temperatura non esposta da questo hardware — mostrato uso CPU</div>') + '</div>' +
+        '<div class="comp-card"><div class="c-lab">RAM in uso</div><div class="c-val">' + (d.online ? l.ramUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.ram, ramSev(d)) + '</div>' +
+        '<div class="comp-card"><div class="c-lab">Batteria</div><div class="c-val">' + (l.batteryPct != null ? l.batteryPct + '%' : 'n/d') + '</div></div>' +
+        '<div class="comp-card"><div class="c-lab">Errori hardware (30gg)</div><div class="c-val ' + hwSev(d) + '">' + (l.hardwareErrorCount30d || 0) + '</div><div class="c-note">' + (l.lastHardwareErrorAt ? 'Ultimo: ' + new Date(l.lastHardwareErrorAt).toLocaleString('it-IT') : 'Nessun errore registrato') + '</div></div>' +
+      '</div>' + (physicalRows ? '<div class="disk-list">' + physicalRows + '</div>' : '') + '</div>' +
+      '<div class="detail-section"><h3>Problemi rilevati &amp; azioni preventive</h3><div class="rec-list">' + recs + '</div></div>' +
+      '<div class="detail-actions"><button class="dbtn primary">Avvia sessione remota</button><button class="dbtn">Contatta cliente</button></div>' +
+      '<p class="detail-note">Prototipo — nessuna sessione reale viene avviata da questo pulsante.</p>';
+
+    document.getElementById('detail-close').addEventListener('click', closeDetail);
+    document.getElementById('overlay').classList.add('open');
+  }
+  function closeDetail() { document.getElementById('overlay').classList.remove('open'); }
+  document.getElementById('overlay').addEventListener('click', function (e) { if (e.target.id === 'overlay') closeDetail(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDetail(); });
+  document.getElementById('device-search').addEventListener('input', renderAll);
+
+  async function refresh() {
+    try {
+      var res = await fetch('/api/devices');
+      lastDevices = await res.json();
+      lastFetchOk = true;
+    } catch (e) {
+      lastFetchOk = false;
+    }
+    var pill = document.getElementById('live-pill');
+    var label = document.getElementById('live-label');
+    pill.classList.toggle('stale', !lastFetchOk);
+    label.textContent = lastFetchOk ? 'Live' : 'Server non raggiungibile';
+    renderAll();
+  }
+
+  refresh();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>
