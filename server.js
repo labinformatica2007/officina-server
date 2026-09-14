@@ -20,6 +20,41 @@ const OFFLINE_AFTER_MS = 90 * 1000;
 const HISTORY_LEN = 40;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
+const ADMIN_USER = process.env.ADMIN_USER || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ENROLL_KEY = process.env.ENROLL_KEY || '';
+
+if (!ADMIN_USER || !ADMIN_PASSWORD) {
+  console.log('[auth] ADMIN_USER/ADMIN_PASSWORD non impostati — dashboard e API SENZA login (solo per sviluppo locale).');
+}
+if (!ENROLL_KEY) {
+  console.log('[auth] ENROLL_KEY non impostata — chiunque conosca il server puo registrare dispositivi falsi (solo per sviluppo locale).');
+}
+
+function timingSafeEqualStr(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function requireLogin(req, res, next) {
+  if (!ADMIN_USER || !ADMIN_PASSWORD) return next(); // login disattivato (dev locale)
+  const header = req.headers.authorization || '';
+  const [scheme, encoded] = header.split(' ');
+  if (scheme === 'Basic' && encoded) {
+    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+    const sep = decoded.indexOf(':');
+    const user = sep === -1 ? decoded : decoded.slice(0, sep);
+    const pass = sep === -1 ? '' : decoded.slice(sep + 1);
+    if (timingSafeEqualStr(user, ADMIN_USER) && timingSafeEqualStr(pass, ADMIN_PASSWORD)) {
+      return next();
+    }
+  }
+  res.set('WWW-Authenticate', 'Basic realm="Lab Informatica"');
+  res.status(401).send('Accesso richiesto');
+}
+
 // device store, persistito su file — sopravvive ai riavvii del processo.
 // NB: su hosting con filesystem effimero (es. un nuovo deploy) il file
 // viene perso comunque; per uso reale su piu' istanze serve un database vero.
@@ -64,6 +99,9 @@ function publicDevice(d) {
 }
 
 app.post('/api/enroll', (req, res) => {
+  if (ENROLL_KEY && !timingSafeEqualStr(req.headers['x-enroll-key'] || '', ENROLL_KEY)) {
+    return res.status(401).json({ error: 'chiave di iscrizione mancante o non valida' });
+  }
   const { clientName, deviceName } = req.body || {};
   if (!clientName || !deviceName) {
     return res.status(400).json({ error: 'clientName e deviceName sono obbligatori' });
@@ -122,13 +160,15 @@ app.post('/api/telemetry', requireDevice, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/devices', (req, res) => {
+app.get('/api/devices', requireLogin, (req, res) => {
   res.json([...devices.values()].map(publicDevice));
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, devices: devices.size }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(requireLogin, express.static(path.join(__dirname, 'public')));
+
+app.get('/', requireLogin, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
 app.listen(PORT, () => {
   console.log(`Lab Informatica server in ascolto su http://localhost:${PORT}`);
