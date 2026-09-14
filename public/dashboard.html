@@ -197,8 +197,10 @@
   .comp-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--surface); }
   .comp-card .c-lab { font-size: 11.5px; color: var(--ink-faint); font-weight: 600; }
   .comp-card .c-val { font-family: var(--font-mono); font-size: 21px; font-weight: 700; margin-top: 5px; }
+  .comp-card .c-val.ok { color: var(--ok); } .comp-card .c-val.warn { color: var(--warn); } .comp-card .c-val.crit { color: var(--crit); }
   .comp-card svg { margin-top: 8px; display: block; width: 100%; height: 34px; }
   .comp-card .c-note { font-size: 10.5px; color: var(--ink-faint); margin-top: 6px; }
+  .comp-card .c-note.warn { color: var(--warn); } .comp-card .c-note.crit { color: var(--crit); }
   .disk-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
   .disk-row { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: var(--surface); border-radius: 8px; }
   .disk-row .h { font-weight: 600; }
@@ -284,6 +286,11 @@
     if (!d.online || l.diskTotalGB == null || l.diskFreeGB == null) return '';
     return fmtGB(l.diskFreeGB) + ' liberi di ' + fmtGB(l.diskTotalGB);
   }
+  function fmtUptime(h) {
+    if (h == null) return 'n/d';
+    if (h < 48) return (Math.round(h * 10) / 10) + ' h';
+    return Math.round(h / 24) + ' giorni';
+  }
   function sevOf(value, warnAt, critAt, higherIsWorse) {
     if (value == null) return 'off';
     if (higherIsWorse) { if (value >= critAt) return 'crit'; if (value >= warnAt) return 'warn'; return 'ok'; }
@@ -303,13 +310,33 @@
     return sevOf(l.cpuUsagePct, 90, 98, true);
   }
   function ramSev(d) { return d.online ? sevOf(d.latest && d.latest.ramUsedPct, 80, 92, true) : 'off'; }
+  function shutdownSev(d) {
+    if (!d.online) return 'off';
+    var n = (d.latest && d.latest.unexpectedShutdownCount30d) || 0;
+    return n >= 3 ? 'crit' : n > 0 ? 'warn' : 'ok';
+  }
+  function diskWearPct(d) {
+    var list = (d.latest && d.latest.diskReliability) || [];
+    var vals = list.map(function (r) { return r.wearPct; }).filter(function (v) { return v != null; });
+    return vals.length ? Math.max.apply(null, vals) : null;
+  }
+  function diskWearSev(d) { return d.online ? sevOf(diskWearPct(d), 70, 90, true) : 'off'; }
+  function updateSev(d) {
+    return d.online ? sevOf(d.latest && d.latest.daysSinceUpdate, 60, 120, true) : 'off';
+  }
+  function batteryHealthSev(d) {
+    var pct = d.latest && d.latest.batteryHealthPct;
+    return d.online && pct != null ? sevOf(pct, 80, 60, false) : 'off';
+  }
   function overallSev(d) {
     if (!d.online) return 'off';
-    var sevs = [diskSev(d), cpuSev(d), ramSev(d), hwSev(d)];
+    var sevs = [diskSev(d), cpuSev(d), ramSev(d), hwSev(d), shutdownSev(d), diskWearSev(d), updateSev(d), batteryHealthSev(d)];
     if (sevs.indexOf('crit') !== -1) return 'crit';
     if (sevs.indexOf('warn') !== -1) return 'warn';
     return 'ok';
   }
+
+  function isBad(sev) { return sev === 'warn' || sev === 'crit'; }
 
   function issuesFor(d) {
     var out = [];
@@ -324,6 +351,14 @@
     if (l.batteryPct != null && l.batteryPct < 40) out.push({ sev: l.batteryPct < 20 ? 'crit' : 'warn', text: 'Batteria: carica residua ' + l.batteryPct + '%' });
     var hwErr = l.hardwareErrorLevelCount30d || 0;
     if (hwErr > 0) out.push({ sev: hwErr >= 3 ? 'crit' : 'warn', text: 'Errori hardware nel log di sistema: ' + hwErr + ' (ultimi 30gg)' });
+    var ss = shutdownSev(d);
+    if (isBad(ss)) out.push({ sev: ss, text: 'Riavvii imprevisti: ' + l.unexpectedShutdownCount30d + ' (ultimi 30gg)' });
+    var ws = diskWearSev(d);
+    if (isBad(ws)) out.push({ sev: ws, text: 'Disco: usura SSD al ' + diskWearPct(d) + '%' });
+    var us = updateSev(d);
+    if (isBad(us)) out.push({ sev: us, text: 'Windows: nessun aggiornamento da ' + l.daysSinceUpdate + ' giorni' });
+    var bhs = batteryHealthSev(d);
+    if (isBad(bhs)) out.push({ sev: bhs, text: 'Batteria: capacità residua ' + l.batteryHealthPct + '% rispetto a nuova' });
     return out;
   }
   function hwSev(d) {
@@ -336,13 +371,21 @@
     var out = [];
     var l = d.latest || {};
     var ds = diskSev(d);
-    if (ds !== 'ok') out.push({ sev: ds, title: 'Disco', text: (ds === 'crit' ? 'Lo stato SMART segnala un problema critico: rischio concreto di perdita dati. ' : 'Lo stato SMART è in avviso. ') + 'Consigliati controllo approfondito e backup precauzionale al più presto.' });
+    if (isBad(ds)) out.push({ sev: ds, title: 'Disco', text: (ds === 'crit' ? 'Lo stato SMART segnala un problema critico: rischio concreto di perdita dati. ' : 'Lo stato SMART è in avviso. ') + 'Consigliati controllo approfondito e backup precauzionale al più presto.' });
     var cs = cpuSev(d);
-    if (cs !== 'ok') out.push({ sev: cs, title: 'CPU', text: cpuUsesTemp(d) ? 'Temperatura sopra soglia: verificare ventole e pasta termica per evitare throttling o spegnimenti.' : 'Utilizzo CPU costantemente alto: verificare processi in background o valutare un upgrade.' });
+    if (isBad(cs)) out.push({ sev: cs, title: 'CPU', text: cpuUsesTemp(d) ? 'Temperatura sopra soglia: verificare ventole e pasta termica per evitare throttling o spegnimenti.' : 'Utilizzo CPU costantemente alto: verificare processi in background o valutare un upgrade.' });
     var rs = ramSev(d);
-    if (rs !== 'ok') out.push({ sev: rs, title: 'RAM', text: 'Utilizzo memoria elevato: valutare chiusura processi superflui o upgrade dei moduli RAM.' });
+    if (isBad(rs)) out.push({ sev: rs, title: 'RAM', text: 'Utilizzo memoria elevato: valutare chiusura processi superflui o upgrade dei moduli RAM.' });
     var hs = hwSev(d);
-    if (hs !== 'ok') out.push({ sev: hs, title: 'Errori hardware', text: 'Windows ha registrato errori hardware nel log di sistema (WHEA) negli ultimi 30 giorni. Non indicano necessariamente un guasto della RAM — possono riguardare anche altri componenti — ma se il PC ha blocchi o riavvii improvvisi vale la pena approfondire con un test di memoria.' });
+    if (isBad(hs)) out.push({ sev: hs, title: 'Errori hardware', text: 'Windows ha registrato errori hardware nel log di sistema (WHEA) negli ultimi 30 giorni. Non indicano necessariamente un guasto della RAM — possono riguardare anche altri componenti — ma se il PC ha blocchi o riavvii improvvisi vale la pena approfondire con un test di memoria.' });
+    var ss = shutdownSev(d);
+    if (isBad(ss)) out.push({ sev: ss, title: 'Riavvii imprevisti', text: 'Il PC si è spento o riavviato senza una chiusura pulita negli ultimi 30 giorni. Può indicare surriscaldamento, alimentatore in via di guasto, driver instabili o un problema hardware — vale la pena indagare prima che diventi un blocco totale.' });
+    var ws = diskWearSev(d);
+    if (isBad(ws)) out.push({ sev: ws, title: 'Usura SSD', text: (ws === 'crit' ? 'Il disco SSD ha consumato gran parte della sua vita utile in scrittura: rischio concreto di guasto a breve. ' : 'Il disco SSD sta invecchiando. ') + 'Consigliati backup e sostituzione preventiva del disco.' });
+    var us = updateSev(d);
+    if (isBad(us)) out.push({ sev: us, title: 'Windows Update', text: 'Il PC non installa aggiornamenti da parecchio tempo: aumenta il rischio di problemi di sicurezza e compatibilità. Consigliato avviare Windows Update.' });
+    var bhs = batteryHealthSev(d);
+    if (isBad(bhs)) out.push({ sev: bhs, title: 'Batteria', text: 'La batteria ha perso una parte significativa della sua capacità originale rispetto a quando era nuova. Se l\'autonomia è ormai troppo bassa per l\'uso quotidiano, valutare la sostituzione.' });
     return out;
   }
 
@@ -466,10 +509,25 @@
     var l = d.latest || {};
     var dsev = diskSev(d), csev = cpuSev(d);
     var recs = recsFor(d).map(function (r) { return '<div class="rec-item ' + r.sev + '"><strong>' + r.title + '</strong>' + r.text + '</div>'; }).join('') || '<div class="rec-item">Nessuna azione preventiva necessaria al momento.</div>';
+    var reliabilityById = {};
+    (l.diskReliability || []).forEach(function (r) { reliabilityById[r.deviceId] = r; });
     var physicalRows = (l.physicalDisks || []).map(function (p) {
       var h = p.health === 'Unhealthy' ? 'crit' : p.health === 'Warning' ? 'warn' : 'ok';
-      return '<div class="disk-row"><span>' + (p.name || '—') + ' (' + (p.mediaType || '?') + ')</span><span class="h ' + h + '">' + (p.health || 'n/d') + '</span></div>';
+      var r = reliabilityById[p.deviceId];
+      var extra = r ? ' — ' + [
+        r.wearPct != null ? 'usura ' + r.wearPct + '%' : null,
+        r.powerOnHours != null ? Math.round(r.powerOnHours / 24) + ' giorni di accensione' : null
+      ].filter(Boolean).join(', ') : '';
+      return '<div class="disk-row"><span>' + (p.name || '—') + ' (' + (p.mediaType || '?') + ')' + extra + '</span><span class="h ' + h + '">' + (p.health || 'n/d') + '</span></div>';
     }).join('');
+    var fans = l.fans || [];
+    var voltages = l.voltages || [];
+    var fansHtml = fans.length
+      ? fans.map(function (f) { return '<div class="disk-row"><span>' + f.name + '</span><span>' + f.rpm + ' RPM</span></div>'; }).join('')
+      : '<div class="c-note">Nessun dato — richiede l\'agente elevato come amministratore</div>';
+    var voltagesHtml = voltages.length
+      ? voltages.map(function (v) { return '<div class="disk-row"><span>' + v.name + '</span><span>' + v.volts + ' V</span></div>'; }).join('')
+      : '<div class="c-note">Nessun dato — richiede l\'agente elevato come amministratore</div>';
 
     document.getElementById('detail-panel').innerHTML = '' +
       '<div class="detail-head"><div class="detail-who"><span class="av">🖥️</span><div><div class="name">' + d.deviceName + '</div><div class="device">' + d.clientName + '</div></div></div><button class="detail-close" id="detail-close">✕</button></div>' +
@@ -478,8 +536,13 @@
         '<div class="comp-card"><div class="c-lab">Disco (volume principale)</div><div class="c-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.diskUsed, dsev) + (diskSpaceNote(d) ? '<div class="c-note">' + diskSpaceNote(d) + '</div>' : '') + '</div>' +
         '<div class="comp-card"><div class="c-lab">' + (cpuUsesTemp(d) ? 'Temperatura CPU' : 'Uso CPU') + '</div><div class="c-val ' + csev + '">' + (d.online ? (cpuUsesTemp(d) ? l.cpuTempC + '°C' : l.cpuUsagePct + '%') : '—') + '</div>' + sparkline(cpuUsesTemp(d) ? (d.history && d.history.cpuTemp) : (d.history && d.history.cpuUsage), csev) + (cpuUsesTemp(d) ? '' : '<div class="c-note">Temperatura non esposta da questo hardware — mostrato uso CPU</div>') + '</div>' +
         '<div class="comp-card"><div class="c-lab">RAM in uso</div><div class="c-val">' + (d.online ? l.ramUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.ram, ramSev(d)) + '</div>' +
-        '<div class="comp-card"><div class="c-lab">Batteria</div><div class="c-val">' + (l.batteryPct != null ? l.batteryPct + '%' : 'n/d') + '</div></div>' +
+        '<div class="comp-card"><div class="c-lab">Batteria</div><div class="c-val">' + (l.batteryPct != null ? l.batteryPct + '%' : 'n/d') + '</div>' + (l.batteryHealthPct != null ? '<div class="c-note ' + batteryHealthSev(d) + '">Salute: ' + l.batteryHealthPct + '% rispetto a nuova</div>' : '') + '</div>' +
         '<div class="comp-card"><div class="c-lab">Errori hardware (30gg)</div><div class="c-val ' + hwSev(d) + '">' + (l.hardwareErrorCount30d || 0) + '</div><div class="c-note">' + (l.lastHardwareErrorAt ? 'Ultimo: ' + new Date(l.lastHardwareErrorAt).toLocaleString('it-IT') : 'Nessun errore registrato') + '</div></div>' +
+        '<div class="comp-card"><div class="c-lab">Acceso da</div><div class="c-val">' + (d.online ? fmtUptime(l.uptimeHours) : '—') + '</div>' + (l.lastBootAt ? '<div class="c-note">Ultimo avvio: ' + new Date(l.lastBootAt).toLocaleString('it-IT') + '</div>' : '') + '</div>' +
+        '<div class="comp-card"><div class="c-lab">Riavvii imprevisti (30gg)</div><div class="c-val ' + shutdownSev(d) + '">' + (l.unexpectedShutdownCount30d ?? 0) + '</div><div class="c-note">Spegnimenti/riavvii senza chiusura pulita</div></div>' +
+        '<div class="comp-card"><div class="c-lab">Windows Update</div><div class="c-val ' + updateSev(d) + '">' + (l.daysSinceUpdate != null ? l.daysSinceUpdate + 'gg fa' : 'n/d') + '</div>' + (l.lastWindowsUpdateAt ? '<div class="c-note">Ultimo: ' + new Date(l.lastWindowsUpdateAt).toLocaleDateString('it-IT') + '</div>' : '') + '</div>' +
+        '<div class="comp-card"><div class="c-lab">Ventole</div>' + fansHtml + '</div>' +
+        '<div class="comp-card"><div class="c-lab">Tensioni scheda madre</div>' + voltagesHtml + '</div>' +
       '</div>' + (physicalRows ? '<div class="disk-list">' + physicalRows + '</div>' : '') + '</div>' +
       '<div class="detail-section"><h3>Problemi rilevati &amp; azioni preventive</h3><div class="rec-list">' + recs + '</div></div>' +
       '<div class="detail-actions"><button class="dbtn primary">Avvia sessione remota</button><button class="dbtn">Contatta cliente</button></div>' +

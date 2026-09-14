@@ -143,14 +143,23 @@ app.post('/api/telemetry', requireDevice, (req, res) => {
     diskHealth: body.diskHealth ?? 'unknown',
     logicalDisks: body.logicalDisks ?? [],
     physicalDisks: body.physicalDisks ?? [],
+    diskReliability: body.diskReliability ?? [],
     cpuUsagePct: body.cpuUsagePct ?? null,
     cpuTempC: body.cpuTempC ?? null,
     gpuTempC: body.gpuTempC ?? null,
+    fans: body.fans ?? [],
+    voltages: body.voltages ?? [],
     ramUsedPct: body.ramUsedPct ?? null,
     batteryPct: body.batteryPct ?? null,
+    batteryHealthPct: body.batteryHealthPct ?? null,
     hardwareErrorCount30d: body.hardwareErrorCount30d ?? 0,
     hardwareErrorLevelCount30d: body.hardwareErrorLevelCount30d ?? 0,
     lastHardwareErrorAt: body.lastHardwareErrorAt ?? null,
+    uptimeHours: body.uptimeHours ?? null,
+    lastBootAt: body.lastBootAt ?? null,
+    unexpectedShutdownCount30d: body.unexpectedShutdownCount30d ?? 0,
+    lastWindowsUpdateAt: body.lastWindowsUpdateAt ?? null,
+    daysSinceUpdate: body.daysSinceUpdate ?? null,
     at: d.lastSeen
   };
   pushCap(d.history.diskUsed, body.diskUsedPct ?? null);
