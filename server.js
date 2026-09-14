@@ -160,6 +160,14 @@ app.post('/api/telemetry', requireDevice, (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete('/api/devices/:id', requireLogin, (req, res) => {
+  const existed = devices.delete(req.params.id);
+  if (!existed) return res.status(404).json({ error: 'dispositivo non trovato' });
+  console.log(`[devices] rimosso dispositivo id=${req.params.id}`);
+  saveDevicesDebounced();
+  res.json({ ok: true });
+});
+
 app.get('/api/devices', requireLogin, (req, res) => {
   res.json([...devices.values()].map(publicDevice));
 });
