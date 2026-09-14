@@ -138,6 +138,8 @@ app.post('/api/telemetry', requireDevice, (req, res) => {
   d.lastSeen = Date.now();
   d.latest = {
     diskUsedPct: body.diskUsedPct ?? null,
+    diskTotalGB: body.diskTotalGB ?? null,
+    diskFreeGB: body.diskFreeGB ?? null,
     diskHealth: body.diskHealth ?? 'unknown',
     logicalDisks: body.logicalDisks ?? [],
     physicalDisks: body.physicalDisks ?? [],

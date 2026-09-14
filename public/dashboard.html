@@ -152,6 +152,7 @@
   .metric .m-val.warn { color: var(--warn); }
   .metric .m-val.crit { color: var(--crit); }
   .metric .m-val.off { color: var(--ink-faint); }
+  .metric .m-sub { font-size: 9.5px; color: var(--ink-faint); margin-top: 3px; }
   .bar-track { height: 4px; border-radius: 3px; background: var(--line); margin-top: 7px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
   .bar-fill.ok { background: var(--ok); }
@@ -239,7 +240,7 @@
       </label>
       <div class="right">
         <span class="live-pill" id="live-pill"><span class="live-dot"></span><span id="live-label">Connessione…</span></span>
-        <div class="tech-chip"><span class="av">MT</span><span class="name">Marco T.</span></div>
+        <div class="tech-chip"><span class="av">LA</span><span class="name">LAB</span></div>
       </div>
     </header>
 
@@ -277,6 +278,12 @@
   var lastDevices = [];
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function fmtGB(v) { return v == null ? null : (Math.round(v * 10) / 10) + ' GB'; }
+  function diskSpaceNote(d) {
+    var l = d.latest || {};
+    if (!d.online || l.diskTotalGB == null || l.diskFreeGB == null) return '';
+    return fmtGB(l.diskFreeGB) + ' liberi di ' + fmtGB(l.diskTotalGB);
+  }
   function sevOf(value, warnAt, critAt, higherIsWorse) {
     if (value == null) return 'off';
     if (higherIsWorse) { if (value >= critAt) return 'crit'; if (value >= warnAt) return 'warn'; return 'ok'; }
@@ -368,11 +375,12 @@
     var cpuLab = cpuUsesTemp(d) ? 'CPU' : 'CPU (uso)';
     var cpuVal = d.online ? (cpuUsesTemp(d) ? l.cpuTempC + '°C' : l.cpuUsagePct + '%') : '—';
     var cpuBarPct = d.online ? (cpuUsesTemp(d) ? clamp(l.cpuTempC, 0, 100) : l.cpuUsagePct) : 0;
+    var spaceNote = diskSpaceNote(d);
     return '' +
       '<div class="device-card' + (d.online ? '' : ' is-offline') + '" data-id="' + d.id + '">' +
         '<div class="dc-head"><div class="dc-who"><span class="av">🖥️</span><div class="name">' + d.deviceName + '</div></div><span class="status-pill ' + sev + '">' + STATUS_LABEL[sev] + '</span></div>' +
         '<div class="metric-row">' +
-          '<div class="metric"><div class="m-lab">Disco</div><div class="m-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div><div class="bar-track"><div class="bar-fill ' + dsev + '" style="width:' + (d.online ? l.diskUsedPct : 0) + '%"></div></div></div>' +
+          '<div class="metric"><div class="m-lab">Disco</div><div class="m-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div><div class="bar-track"><div class="bar-fill ' + dsev + '" style="width:' + (d.online ? l.diskUsedPct : 0) + '%"></div></div>' + (spaceNote ? '<div class="m-sub">' + spaceNote + '</div>' : '') + '</div>' +
           '<div class="metric"><div class="m-lab">' + cpuLab + '</div><div class="m-val ' + csev + '">' + cpuVal + '</div><div class="bar-track"><div class="bar-fill ' + csev + '" style="width:' + cpuBarPct + '%"></div></div></div>' +
           '<div class="metric"><div class="m-lab">RAM</div><div class="m-val ' + rsev + '">' + (d.online ? l.ramUsedPct + '%' : '—') + '</div><div class="bar-track"><div class="bar-fill ' + rsev + '" style="width:' + (d.online ? l.ramUsedPct : 0) + '%"></div></div></div>' +
         '</div>' +
@@ -467,7 +475,7 @@
       '<div class="detail-head"><div class="detail-who"><span class="av">🖥️</span><div><div class="name">' + d.deviceName + '</div><div class="device">' + d.clientName + '</div></div></div><button class="detail-close" id="detail-close">✕</button></div>' +
       '<span class="status-pill ' + overallSev(d) + '">' + STATUS_LABEL[overallSev(d)] + '</span>' +
       '<div class="detail-section"><h3>Componenti</h3><div class="comp-grid">' +
-        '<div class="comp-card"><div class="c-lab">Disco (volume principale)</div><div class="c-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.diskUsed, dsev) + '</div>' +
+        '<div class="comp-card"><div class="c-lab">Disco (volume principale)</div><div class="c-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.diskUsed, dsev) + (diskSpaceNote(d) ? '<div class="c-note">' + diskSpaceNote(d) + '</div>' : '') + '</div>' +
         '<div class="comp-card"><div class="c-lab">' + (cpuUsesTemp(d) ? 'Temperatura CPU' : 'Uso CPU') + '</div><div class="c-val ' + csev + '">' + (d.online ? (cpuUsesTemp(d) ? l.cpuTempC + '°C' : l.cpuUsagePct + '%') : '—') + '</div>' + sparkline(cpuUsesTemp(d) ? (d.history && d.history.cpuTemp) : (d.history && d.history.cpuUsage), csev) + (cpuUsesTemp(d) ? '' : '<div class="c-note">Temperatura non esposta da questo hardware — mostrato uso CPU</div>') + '</div>' +
         '<div class="comp-card"><div class="c-lab">RAM in uso</div><div class="c-val">' + (d.online ? l.ramUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.ram, ramSev(d)) + '</div>' +
         '<div class="comp-card"><div class="c-lab">Batteria</div><div class="c-val">' + (l.batteryPct != null ? l.batteryPct + '%' : 'n/d') + '</div></div>' +
