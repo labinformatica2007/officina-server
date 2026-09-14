@@ -321,16 +321,13 @@
     return vals.length ? Math.max.apply(null, vals) : null;
   }
   function diskWearSev(d) { return d.online ? sevOf(diskWearPct(d), 70, 90, true) : 'off'; }
-  function updateSev(d) {
-    return d.online ? sevOf(d.latest && d.latest.daysSinceUpdate, 60, 120, true) : 'off';
-  }
   function batteryHealthSev(d) {
     var pct = d.latest && d.latest.batteryHealthPct;
     return d.online && pct != null ? sevOf(pct, 80, 60, false) : 'off';
   }
   function overallSev(d) {
     if (!d.online) return 'off';
-    var sevs = [diskSev(d), cpuSev(d), ramSev(d), hwSev(d), shutdownSev(d), diskWearSev(d), updateSev(d), batteryHealthSev(d)];
+    var sevs = [diskSev(d), cpuSev(d), ramSev(d), hwSev(d), shutdownSev(d), diskWearSev(d), batteryHealthSev(d)];
     if (sevs.indexOf('crit') !== -1) return 'crit';
     if (sevs.indexOf('warn') !== -1) return 'warn';
     return 'ok';
@@ -355,8 +352,6 @@
     if (isBad(ss)) out.push({ sev: ss, text: 'Riavvii imprevisti: ' + l.unexpectedShutdownCount30d + ' (ultimi 30gg)' });
     var ws = diskWearSev(d);
     if (isBad(ws)) out.push({ sev: ws, text: 'Disco: usura SSD al ' + diskWearPct(d) + '%' });
-    var us = updateSev(d);
-    if (isBad(us)) out.push({ sev: us, text: 'Windows: nessun aggiornamento da ' + l.daysSinceUpdate + ' giorni' });
     var bhs = batteryHealthSev(d);
     if (isBad(bhs)) out.push({ sev: bhs, text: 'Batteria: capacità residua ' + l.batteryHealthPct + '% rispetto a nuova' });
     return out;
@@ -382,8 +377,6 @@
     if (isBad(ss)) out.push({ sev: ss, title: 'Riavvii imprevisti', text: 'Il PC si è spento o riavviato senza una chiusura pulita negli ultimi 30 giorni. Può indicare surriscaldamento, alimentatore in via di guasto, driver instabili o un problema hardware — vale la pena indagare prima che diventi un blocco totale.' });
     var ws = diskWearSev(d);
     if (isBad(ws)) out.push({ sev: ws, title: 'Usura SSD', text: (ws === 'crit' ? 'Il disco SSD ha consumato gran parte della sua vita utile in scrittura: rischio concreto di guasto a breve. ' : 'Il disco SSD sta invecchiando. ') + 'Consigliati backup e sostituzione preventiva del disco.' });
-    var us = updateSev(d);
-    if (isBad(us)) out.push({ sev: us, title: 'Windows Update', text: 'Il PC non installa aggiornamenti da parecchio tempo: aumenta il rischio di problemi di sicurezza e compatibilità. Consigliato avviare Windows Update.' });
     var bhs = batteryHealthSev(d);
     if (isBad(bhs)) out.push({ sev: bhs, title: 'Batteria', text: 'La batteria ha perso una parte significativa della sua capacità originale rispetto a quando era nuova. Se l\'autonomia è ormai troppo bassa per l\'uso quotidiano, valutare la sostituzione.' });
     return out;
@@ -536,11 +529,14 @@
         '<div class="comp-card"><div class="c-lab">Disco (volume principale)</div><div class="c-val ' + dsev + '">' + (d.online ? l.diskUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.diskUsed, dsev) + (diskSpaceNote(d) ? '<div class="c-note">' + diskSpaceNote(d) + '</div>' : '') + '</div>' +
         '<div class="comp-card"><div class="c-lab">' + (cpuUsesTemp(d) ? 'Temperatura CPU' : 'Uso CPU') + '</div><div class="c-val ' + csev + '">' + (d.online ? (cpuUsesTemp(d) ? l.cpuTempC + '°C' : l.cpuUsagePct + '%') : '—') + '</div>' + sparkline(cpuUsesTemp(d) ? (d.history && d.history.cpuTemp) : (d.history && d.history.cpuUsage), csev) + (cpuUsesTemp(d) ? '' : '<div class="c-note">Temperatura non esposta da questo hardware — mostrato uso CPU</div>') + '</div>' +
         '<div class="comp-card"><div class="c-lab">RAM in uso</div><div class="c-val">' + (d.online ? l.ramUsedPct + '%' : '—') + '</div>' + sparkline(d.history && d.history.ram, ramSev(d)) + '</div>' +
-        '<div class="comp-card"><div class="c-lab">Batteria</div><div class="c-val">' + (l.batteryPct != null ? l.batteryPct + '%' : 'n/d') + '</div>' + (l.batteryHealthPct != null ? '<div class="c-note ' + batteryHealthSev(d) + '">Salute: ' + l.batteryHealthPct + '% rispetto a nuova</div>' : '') + '</div>' +
+        '<div class="comp-card"><div class="c-lab">Batteria</div><div class="c-val">' + (l.batteryPct != null ? l.batteryPct + '%' : 'n/d') + '</div>' +
+          (l.batteryHealthPct != null ? '<div class="c-note ' + batteryHealthSev(d) + '">Salute: ' + l.batteryHealthPct + '% rispetto a nuova</div>' : '') +
+          (l.batteryFullChargeMWh != null ? '<div class="c-note">Capacità: ' + l.batteryFullChargeMWh + ' mWh di ' + l.batteryDesignedMWh + ' mWh nominali</div>' : '') +
+          (l.batteryCycleCount != null ? '<div class="c-note">Cicli di carica: ' + l.batteryCycleCount + '</div>' : '') +
+        '</div>' +
         '<div class="comp-card"><div class="c-lab">Errori hardware (30gg)</div><div class="c-val ' + hwSev(d) + '">' + (l.hardwareErrorCount30d || 0) + '</div><div class="c-note">' + (l.lastHardwareErrorAt ? 'Ultimo: ' + new Date(l.lastHardwareErrorAt).toLocaleString('it-IT') : 'Nessun errore registrato') + '</div></div>' +
         '<div class="comp-card"><div class="c-lab">Acceso da</div><div class="c-val">' + (d.online ? fmtUptime(l.uptimeHours) : '—') + '</div>' + (l.lastBootAt ? '<div class="c-note">Ultimo avvio: ' + new Date(l.lastBootAt).toLocaleString('it-IT') + '</div>' : '') + '</div>' +
         '<div class="comp-card"><div class="c-lab">Riavvii imprevisti (30gg)</div><div class="c-val ' + shutdownSev(d) + '">' + (l.unexpectedShutdownCount30d ?? 0) + '</div><div class="c-note">Spegnimenti/riavvii senza chiusura pulita</div></div>' +
-        '<div class="comp-card"><div class="c-lab">Windows Update</div><div class="c-val ' + updateSev(d) + '">' + (l.daysSinceUpdate != null ? l.daysSinceUpdate + 'gg fa' : 'n/d') + '</div>' + (l.lastWindowsUpdateAt ? '<div class="c-note">Ultimo: ' + new Date(l.lastWindowsUpdateAt).toLocaleDateString('it-IT') + '</div>' : '') + '</div>' +
         '<div class="comp-card"><div class="c-lab">Ventole</div>' + fansHtml + '</div>' +
         '<div class="comp-card"><div class="c-lab">Tensioni scheda madre</div>' + voltagesHtml + '</div>' +
       '</div>' + (physicalRows ? '<div class="disk-list">' + physicalRows + '</div>' : '') + '</div>' +

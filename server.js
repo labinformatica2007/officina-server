@@ -152,14 +152,15 @@ app.post('/api/telemetry', requireDevice, (req, res) => {
     ramUsedPct: body.ramUsedPct ?? null,
     batteryPct: body.batteryPct ?? null,
     batteryHealthPct: body.batteryHealthPct ?? null,
+    batteryFullChargeMWh: body.batteryFullChargeMWh ?? null,
+    batteryDesignedMWh: body.batteryDesignedMWh ?? null,
+    batteryCycleCount: body.batteryCycleCount ?? null,
     hardwareErrorCount30d: body.hardwareErrorCount30d ?? 0,
     hardwareErrorLevelCount30d: body.hardwareErrorLevelCount30d ?? 0,
     lastHardwareErrorAt: body.lastHardwareErrorAt ?? null,
     uptimeHours: body.uptimeHours ?? null,
     lastBootAt: body.lastBootAt ?? null,
     unexpectedShutdownCount30d: body.unexpectedShutdownCount30d ?? 0,
-    lastWindowsUpdateAt: body.lastWindowsUpdateAt ?? null,
-    daysSinceUpdate: body.daysSinceUpdate ?? null,
     at: d.lastSeen
   };
   pushCap(d.history.diskUsed, body.diskUsedPct ?? null);
